@@ -75,22 +75,51 @@ Preview:
   alt="Plazen schedule"
 />
 
-## Data model expectations This service expects a Supabase schema with a tasks
-table containing at least: - user_id (UUID) - title (text) - scheduled_time
-(timestamp with time zone, ISO 8601) - duration_minutes (integer) Optional
-fields supported by the renderer if present: - location (text) - color (hex
-color like #0ea5e9) - is_time_sensitive (boolean) User-specific settings
-(optional) may include: - timetable_start (hour, e.g., 8) - timetable_end (hour,
-e.g., 18) The service may also fetch the user's display name from Supabase Auth
-to show in the SVG header. ## Local development Prerequisites: - Node.js 18+
-(Next.js 14) - pnpm, npm, or yarn Setup: ```bash git clone
-https://github.com/plazen/images cd images # install deps pnpm install # or: npm
-install # configure environment cp .env.example .env.local # add your Supabase
-values # run dev server pnpm dev # or: npm run dev # build and start
-(production) pnpm build && pnpm start # or: npm run build && npm start values #
-run dev server pnpm dev # or: npm run dev # build and start (production) pnpm
-build && pnpm start # or: npm run build && npm start
-````
+## Data model expectations
+
+
+This service expects a Supabase schema with a tasks table containing at least:
+
+- user_id (UUID)
+- title (text)
+- scheduled_time (timestamp with time zone, ISO 8601)
+- duration_minutes (integer)
+
+Optional fields supported by the renderer if present:
+
+- location (text)
+- color (hex color like #0ea5e9)
+- is_time_sensitive (boolean)
+- is_completed (boolean)
+
+User-specific settings (optional) may include:
+- timetable_start (hour, e.g., 8)
+- timetable_end (hour, e.g., 18)
+
+The service may also fetch the user's display name from Supabase Auth to show in the SVG header.
+
+## Local development
+
+Prerequisites:
+- Node.js 18+ (Next.js 14)
+- pnpm, npm, or yarn
+
+Setup:
+```bash
+git clone https://github.com/plazen/images
+cd images
+# install deps
+pnpm install
+# or: npm install
+# configure environment
+cp .env.example .env.local
+# add your Supabase values
+# run dev server
+pnpm dev
+# or: npm run dev
+# build and start
+pnpm build && pnpm start
+# or: npm run build && npm start
 
 Available scripts (see package.json):
 
@@ -140,3 +169,4 @@ Notes:
 ## License
 
 This project is licensed under the MIT License. See LICENSE for details.
+

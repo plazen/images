@@ -7,6 +7,7 @@ export type ScheduleItem = {
   end: string; // "HH:MM" in tz
   location?: string;
   color?: string;
+  isCompleted?: boolean;
 };
 
 export async function fetchUserTimetableSettings(userId: string): Promise<{
@@ -107,7 +108,9 @@ export async function fetchScheduleForUserDate(
     try {
       const result = await supabase
         .from("tasks")
-        .select("title, scheduled_time, duration_minutes, is_time_sensitive")
+        .select(
+          "title, scheduled_time, duration_minutes, is_time_sensitive, is_completed"
+        )
         .eq("user_id", userId)
         .gte("scheduled_time", from.toISOString())
         .lt("scheduled_time", to.toISOString())
@@ -148,6 +151,7 @@ export async function fetchScheduleForUserDate(
           end: toHMInTZ(endDate, tz),
           location: t.location ?? undefined,
           color: t.color ?? undefined,
+          isCompleted: t.is_completed ?? false,
         };
       } catch (error) {
         console.error("Error processing task:", t, error);

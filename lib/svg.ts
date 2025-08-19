@@ -84,6 +84,13 @@ export function renderScheduleSvg(opts: {
     // Combine title and time on the same line
     const titleWithTime = `${title} • ${timeLabel}`;
 
+    // Adjust styling based on completion status
+    const isCompleted = it.isCompleted ?? false;
+    const fillOpacity = isCompleted ? "0.08" : "0.18";
+    const strokeOpacity = isCompleted ? "0.4" : "0.8";
+    const textOpacity = isCompleted ? "0.6" : "1";
+    const textDecoration = isCompleted ? "line-through" : "none";
+
     // Calculate center positions for text
     const centerX = x + w / 2;
     const centerY = y + h / 2;
@@ -91,17 +98,19 @@ export function renderScheduleSvg(opts: {
     itemEls.push(`
       <g>
         <rect x="${x}" y="${y}" rx="8" ry="8" width="${w}" height="${h}"
-          fill="${color}" fill-opacity="0.18" stroke="${color}" stroke-opacity="0.8" stroke-width="1.5"/>
+          fill="${color}" fill-opacity="${fillOpacity}" stroke="${color}" stroke-opacity="${strokeOpacity}" stroke-width="1.5"${
+      isCompleted ? ' stroke-dasharray="4,4"' : ""
+    }/>
         <text x="${centerX}" y="${
       loc ? centerY - 6 : centerY + 2
-    }" font-size="14" fill="${text}" font-weight="600" text-anchor="middle" dominant-baseline="middle"
-          font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">${titleWithTime}</text>${
+    }" font-size="14" fill="${text}" fill-opacity="${textOpacity}" font-weight="600" text-anchor="middle" dominant-baseline="middle"
+          font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" text-decoration="${textDecoration}">${titleWithTime}</text>${
       loc
         ? `
         <text x="${centerX}" y="${
             centerY + 12
-          }" font-size="12" fill="${subtext}" text-anchor="middle" dominant-baseline="middle"
-          font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">${loc}</text>`
+          }" font-size="12" fill="${subtext}" fill-opacity="${textOpacity}" text-anchor="middle" dominant-baseline="middle"
+          font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" text-decoration="${textDecoration}">${loc}</text>`
         : ""
     }
       </g>
