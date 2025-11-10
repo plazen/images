@@ -147,8 +147,8 @@ export async function fetchScheduleForUserDate(
 
         return {
           title: t.title as string,
-          start: toHMInTZ(startDate, tz),
-          end: toHMInTZ(endDate, tz),
+          start: toHMInTZ(startDate, "utc"),
+          end: toHMInTZ(endDate, "utc"),
           location: t.location ?? undefined,
           color: t.color ?? undefined,
           isCompleted: t.is_completed ?? false,
