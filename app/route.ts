@@ -123,8 +123,8 @@ export async function GET(req: Request): Promise<Response> {
 
     const headers = new Headers({
       "Content-Type": "image/svg+xml; charset=utf-8",
-      "Cache-Control": "public, max-age=60, s-maxage=300",
-      "CDN-Cache-Control": "public, max-age=300",
+      "Cache-Control": "public, max-age=1800, s-maxage=1800",
+      "CDN-Cache-Control": "public, max-age=1800",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
