@@ -14,18 +14,21 @@ export function renderScheduleSvg(opts: {
   const totalMinutes = Math.max(1, dayEnd - dayStart);
 
   const width = 1000;
-  const height = 600;
+  const height = 650;
   const padding = 24;
   const headerHeight = 72;
   const trackTop = padding + headerHeight;
-  const trackHeight = height - trackTop - padding;
+  const trackHeight = height - 50 - trackTop - padding;
 
-  const bg = "#0b1220";
   const panel = "#0f172a";
   const text = "#e5e7eb";
   const subtext = "#94a3b8";
   const grid = "#1e293b";
   const border = "#334155";
+
+  // Define the beautiful font stack
+  const fontStack =
+    "Instrument Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto";
 
   const hourLines: string[] = [];
   const labels: string[] = [];
@@ -47,7 +50,7 @@ export function renderScheduleSvg(opts: {
     labels.push(
       `<text x="${padding + timeMargin - 8}" y="${
         y + 4
-      }" font-size="12" fill="${subtext}" text-anchor="end" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">${hh}:${mm}</text>`
+      }" font-size="12" fill="${subtext}" text-anchor="end" font-family="${fontStack}">${hh}:${mm}</text>`
     );
   }
 
@@ -104,13 +107,13 @@ export function renderScheduleSvg(opts: {
         <text x="${centerX}" y="${
       loc ? centerY - 6 : centerY + 2
     }" font-size="14" fill="${text}" fill-opacity="${textOpacity}" font-weight="600" text-anchor="middle" dominant-baseline="middle"
-          font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" text-decoration="${textDecoration}">${titleWithTime}</text>${
+          font-family="${fontStack}" text-decoration="${textDecoration}">${titleWithTime}</text>${
       loc
         ? `
         <text x="${centerX}" y="${
             centerY + 12
           }" font-size="12" fill="${subtext}" fill-opacity="${textOpacity}" text-anchor="middle" dominant-baseline="middle"
-          font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" text-decoration="${textDecoration}">${loc}</text>`
+          font-family="${fontStack}" text-decoration="${textDecoration}">${loc}</text>`
         : ""
     }
       </g>
@@ -122,6 +125,9 @@ export function renderScheduleSvg(opts: {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;display=swap');
+    </style>
     <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.2"/>
       <stop offset="100%" stop-color="#22c55e" stop-opacity="0.2"/>
@@ -136,11 +142,11 @@ export function renderScheduleSvg(opts: {
     <text x="${padding}" y="${
     padding + 28
   }" font-size="22" fill="${text}" font-weight="700"
-      font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">${escapeXml(
-        userName || user
-      )}'s Schedule</text>
+      font-family="${fontStack}">${escapeXml(
+    userName || user
+  )}'s Schedule</text>
     <text x="${padding}" y="${padding + 52}" font-size="14" fill="${subtext}"
-      font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">${prettyDate} (${dateYMD}) · ${escapeXml(
+      font-family="${fontStack}">${prettyDate} (${dateYMD}) · ${escapeXml(
     tz
   )}</text>
   </g>
@@ -157,6 +163,27 @@ export function renderScheduleSvg(opts: {
   <rect x="${padding + timeMargin}" y="${trackTop}" width="${
     width - padding - timeMargin - padding
   }" height="${trackHeight}" fill="url(#g1)" opacity="0.12"/>
+
+  <g id="plazen-logo" transform="translate(400, 605) scale(0.4)">
+    <path d="M 5 10 C 15 0, 40 15, 30 10 C 50 5, 60 5, 70 10" fill="none" stroke="${subtext}" stroke-width="1.4"/>
+    <circle cx="10" cy="7" r="3" fill="${subtext}"/>
+    <circle cx="20" cy="7.5" r="2.6" fill="${subtext}"/>
+    <circle cx="32" cy="9.5" r="3.1" fill="${subtext}"/>
+    <circle cx="56" cy="6.5" r="3.3" fill="${subtext}"/>
+  </g>
+  
+  <text 
+    x="450" 
+    y="610" 
+    font-size="18" 
+    fill="${subtext}" 
+    text-anchor="start" 
+    dominant-baseline="middle"
+    font-family="${fontStack}"
+    font-weight="500"
+  >
+    Powered by Plazen
+  </text>
 </svg>`;
 }
 
