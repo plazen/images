@@ -7,7 +7,7 @@ import { fetchUserDisplayName } from "@lib/db";
 import { parseDateParam, toYMDInTZ, parseHM } from "@lib/utils";
 import { debugLog, debugError, validateEnvironment } from "@lib/debug";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
