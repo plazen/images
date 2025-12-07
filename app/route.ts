@@ -1,10 +1,12 @@
 import { renderScheduleSvg } from "@lib/svg";
 import {
   fetchScheduleForUserDate,
+  fetchExternalEventsForUserDate,
   fetchUserTimetableSettings,
+  ScheduleItem,
 } from "@lib/schedule";
 import { fetchUserDisplayName } from "@lib/db";
-import { parseDateParam, toYMDInTZ, parseHM } from "@lib/utils";
+import { parseDateParam, toYMDInTZ, parseHM, hmToMinutes } from "@lib/utils";
 import { debugLog, debugError, validateEnvironment } from "@lib/debug";
 
 export const runtime = "nodejs";
@@ -90,13 +92,52 @@ export async function GET(req: Request): Promise<Response> {
         502,
         `Failed to fetch schedule from database: ${
           error instanceof Error ? error.message : "Unknown database error"
-        }`
+        }`,
       );
     }
 
     if (!items) {
       return jsonError(502, "No schedule data returned from database.");
     }
+
+    // Fetch external events from Supabase
+    let externalEvents: ScheduleItem[];
+    try {
+      externalEvents = await fetchExternalEventsForUserDate(user, dateYMD, tz);
+      debugLog("External events fetched", {
+        count: externalEvents.length,
+        externalEvents,
+      });
+    } catch (error) {
+      debugError("Failed to fetch external events from database", error);
+      console.error("[ERROR] External events fetch failed:", error);
+      // Don't fail the request if external events fail - just use empty array
+      externalEvents = [];
+    }
+
+    // Merge tasks and external events
+    const allItems = [...items, ...externalEvents];
+    debugLog("All items merged", { count: allItems.length });
+
+    // Calculate current time in the user's timezone for the time needle
+    const now = new Date();
+    const nowInTz = new Intl.DateTimeFormat("en-GB", {
+      timeZone: tz,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(now);
+    const currentTimeMinutes = hmToMinutes(nowInTz);
+    const todayInTz = toYMDInTZ(now, tz);
+    const showTimeNeedle =
+      settings?.show_time_needle !== false && dateYMD === todayInTz;
+
+    debugLog("Time needle info", {
+      nowInTz,
+      currentTimeMinutes,
+      todayInTz,
+      showTimeNeedle,
+    });
 
     // Render SVG
     let svg;
@@ -105,10 +146,12 @@ export async function GET(req: Request): Promise<Response> {
         user,
         userName: userName || undefined,
         dateYMD,
-        items,
+        items: allItems,
         tz,
         dayStart,
         dayEnd,
+        showTimeNeedle,
+        currentTimeMinutes,
       });
       debugLog("SVG rendered successfully", { length: svg.length });
     } catch (error) {
@@ -117,7 +160,7 @@ export async function GET(req: Request): Promise<Response> {
         500,
         `Failed to render SVG: ${
           error instanceof Error ? error.message : "Unknown rendering error"
-        }`
+        }`,
       );
     }
 
@@ -138,7 +181,7 @@ export async function GET(req: Request): Promise<Response> {
       500,
       `Internal server error: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   }
 }

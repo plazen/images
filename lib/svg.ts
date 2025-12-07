@@ -3,66 +3,65 @@ import { escapeXml, hmToMinutes } from "@lib/utils";
 
 export function renderScheduleSvg(opts: {
   user: string;
-  userName?: string; // Display name for the user
-  dateYMD: string; // YYYY-MM-DD
+  userName?: string;
+  dateYMD: string;
   items: ScheduleItem[];
   tz: string;
-  dayStart: number; // minutes from 00:00
-  dayEnd: number; // minutes from 00:00
+  dayStart: number;
+  dayEnd: number;
+  showTimeNeedle?: boolean;
+  currentTimeMinutes?: number;
 }): string {
   const { user, userName, dateYMD, items, tz, dayStart, dayEnd } = opts;
   const totalMinutes = Math.max(1, dayEnd - dayStart);
 
   const width = 1000;
-  const height = 650;
+  const height = 900;
   const padding = 24;
-  const headerHeight = 72;
-  const trackTop = padding + headerHeight;
-  const trackHeight = height - 50 - trackTop - padding;
+  const trackTop = padding;
+  const trackHeight = height - trackTop - padding - 40;
 
-  const panel = "#0f172a";
+  const panel = "#0a0f1a";
   const text = "#e5e7eb";
-  const subtext = "#94a3b8";
-  const grid = "#1e293b";
-  const border = "#334155";
+  const subtext = "#64748b";
+  const gridColor = "#1e293b";
 
-  // Define the beautiful font stack
   const fontStack =
     "Instrument Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto";
 
+  const timeMargin = 56;
+  const laneX = padding + timeMargin;
+  const laneW = width - laneX - padding;
+
+  // Generate hour lines and labels
   const hourLines: string[] = [];
   const labels: string[] = [];
 
-  // Increased left margin for time labels to prevent cutoff
-  const timeMargin = 64; // Increased from 36 to 64
-
   for (let t = roundDownToHour(dayStart); t <= dayEnd; t += 60) {
     const y = trackTop + (trackHeight * (t - dayStart)) / totalMinutes;
+    // Dotted line
     hourLines.push(
-      `<line x1="${padding + timeMargin}" y1="${y}" x2="${
-        width - padding
-      }" y2="${y}" stroke="${grid}" stroke-width="1"/>`
+      `<line x1="${laneX}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="${gridColor}" stroke-width="1" stroke-dasharray="4,4"/>`,
     );
     const hh = Math.floor(t / 60)
       .toString()
       .padStart(2, "0");
     const mm = (t % 60).toString().padStart(2, "0");
     labels.push(
-      `<text x="${padding + timeMargin - 8}" y="${
-        y + 4
-      }" font-size="12" fill="${subtext}" text-anchor="end" font-family="${fontStack}">${hh}:${mm}</text>`
+      `<text x="${padding + timeMargin - 12}" y="${y + 4}" font-size="13" fill="${subtext}" text-anchor="end" font-family="${fontStack}">${hh}:${mm}</text>`,
     );
   }
 
-  // Adjusted lane position to account for larger time margin
-  const laneX = padding + timeMargin + 20;
-  const laneW = width - laneX - padding;
-
+  // Sort items by start time
   const sorted = [...items].sort(
-    (a, b) => hmToMinutes(a.start) - hmToMinutes(b.start)
+    (a, b) => hmToMinutes(a.start) - hmToMinutes(b.start),
   );
 
+  // Generate item elements
   const itemEls: string[] = [];
+  let gradientDefs: string[] = [];
+  let gradientIndex = 0;
+
   for (const it of sorted) {
     const startMin = hmToMinutes(it.start);
     const endMin = hmToMinutes(it.end);
@@ -73,54 +72,81 @@ export function renderScheduleSvg(opts: {
     const y =
       trackTop + (trackHeight * (clampedStart - dayStart)) / totalMinutes;
     const h = Math.max(
-      8,
-      (trackHeight * (clampedEnd - clampedStart)) / totalMinutes
+      24,
+      (trackHeight * (clampedEnd - clampedStart)) / totalMinutes,
     );
     const x = laneX;
     const w = laneW;
 
-    const color = it.color ?? "#0ea5e9";
-    const title = escapeXml(it.title);
-    const loc = it.location ? escapeXml(it.location) : "";
-    const timeLabel = `${it.start}–${it.end}`;
-
-    // Combine title and time on the same line
-    const titleWithTime = `${title} • ${timeLabel}`;
-
-    // Adjust styling based on completion status
+    const isExternalEvent = (it as any).isExternal ?? false;
     const isCompleted = it.isCompleted ?? false;
-    const fillOpacity = isCompleted ? "0.08" : "0.18";
-    const strokeOpacity = isCompleted ? "0.4" : "0.8";
-    const textOpacity = isCompleted ? "0.6" : "1";
-    const textDecoration = isCompleted ? "line-through" : "none";
 
-    // Calculate center positions for text
-    const centerX = x + w / 2;
-    const centerY = y + h / 2;
+    // Colors
+    let baseColor = it.color ?? (isExternalEvent ? "#3b82f6" : "#0d9488");
+    let gradientId = `grad${gradientIndex++}`;
+
+    // Create gradient for the task block
+    if (isCompleted) {
+      gradientDefs.push(`
+        <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="${baseColor}" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="${baseColor}" stop-opacity="0.05"/>
+        </linearGradient>
+      `);
+    } else {
+      gradientDefs.push(`
+        <linearGradient id="${gradientId}" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="${baseColor}" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="${baseColor}" stop-opacity="0.15"/>
+        </linearGradient>
+      `);
+    }
+
+    const title = escapeXml(it.title);
+    const timeLabel = `${it.start} – ${it.end}`;
+
+    const textOpacity = isCompleted ? "0.5" : "1";
+    const textY = y + 22;
+
+    // Left border accent
+    const accentWidth = 4;
+
+    // Checkmark for completed tasks
+    const checkmark = isCompleted
+      ? `<g transform="translate(${x + w - 36}, ${y + h / 2 - 10})">
+          <circle cx="10" cy="10" r="10" fill="${baseColor}" fill-opacity="0.3"/>
+          <path d="M6 10 L9 13 L14 7" stroke="${text}" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>`
+      : "";
 
     itemEls.push(`
       <g>
         <rect x="${x}" y="${y}" rx="8" ry="8" width="${w}" height="${h}"
-          fill="${color}" fill-opacity="${fillOpacity}" stroke="${color}" stroke-opacity="${strokeOpacity}" stroke-width="1.5"${
-      isCompleted ? ' stroke-dasharray="4,4"' : ""
-    }/>
-        <text x="${centerX}" y="${
-      loc ? centerY - 6 : centerY + 2
-    }" font-size="14" fill="${text}" fill-opacity="${textOpacity}" font-weight="600" text-anchor="middle" dominant-baseline="middle"
-          font-family="${fontStack}" text-decoration="${textDecoration}">${titleWithTime}</text>${
-      loc
-        ? `
-        <text x="${centerX}" y="${
-            centerY + 12
-          }" font-size="12" fill="${subtext}" fill-opacity="${textOpacity}" text-anchor="middle" dominant-baseline="middle"
-          font-family="${fontStack}" text-decoration="${textDecoration}">${loc}</text>`
-        : ""
-    }
+          fill="url(#${gradientId})"/>
+        <rect x="${x}" y="${y}" rx="8" ry="8" width="${accentWidth}" height="${h}"
+          fill="${baseColor}" fill-opacity="${isCompleted ? 0.4 : 0.8}"/>
+        <text x="${x + 16}" y="${textY}" font-size="15" fill="${text}" fill-opacity="${textOpacity}" font-weight="600"
+          font-family="${fontStack}">${title}</text>
+        <text x="${x + 16}" y="${textY + 20}" font-size="13" fill="${subtext}" fill-opacity="${textOpacity}"
+          font-family="${fontStack}">${timeLabel}</text>
+        ${checkmark}
       </g>
     `);
   }
 
-  const prettyDate = prettyDateFromYMD(dateYMD);
+  // Time needle (current time indicator)
+  let timeNeedle = "";
+  if (opts.showTimeNeedle && opts.currentTimeMinutes !== undefined) {
+    const needleTime = opts.currentTimeMinutes;
+    if (needleTime >= dayStart && needleTime <= dayEnd) {
+      const needleY =
+        trackTop + (trackHeight * (needleTime - dayStart)) / totalMinutes;
+      timeNeedle = `
+        <circle cx="${laneX}" cy="${needleY}" r="5" fill="#ef4444"/>
+        <line x1="${laneX}" y1="${needleY}" x2="${width - padding}" y2="${needleY}" stroke="#ef4444" stroke-width="2" stroke-opacity="0.6"/>
+      `;
+    }
+  }
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
@@ -128,28 +154,10 @@ export function renderScheduleSvg(opts: {
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;display=swap');
     </style>
-    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#22c55e" stop-opacity="0.2"/>
-    </linearGradient>
+    ${gradientDefs.join("\n")}
   </defs>
 
-  <rect x="${padding / 2}" y="${padding / 2}" width="${
-    width - padding
-  }" height="${height - padding}" rx="16" fill="${panel}" stroke="${border}"/>
-
-  <g>
-    <text x="${padding}" y="${
-    padding + 28
-  }" font-size="22" fill="${text}" font-weight="700"
-      font-family="${fontStack}">${escapeXml(
-    userName || user
-  )}'s Schedule</text>
-    <text x="${padding}" y="${padding + 52}" font-size="14" fill="${subtext}"
-      font-family="${fontStack}">${prettyDate} (${dateYMD}) · ${escapeXml(
-    tz
-  )}</text>
-  </g>
+  <rect width="${width}" height="${height}" fill="${panel}"/>
 
   <g>
     ${hourLines.join("\n")}
@@ -160,44 +168,11 @@ export function renderScheduleSvg(opts: {
     ${itemEls.join("\n")}
   </g>
 
-  <rect x="${padding + timeMargin}" y="${trackTop}" width="${
-    width - padding - timeMargin - padding
-  }" height="${trackHeight}" fill="url(#g1)" opacity="0.12"/>
+  ${timeNeedle}
 
-  <g id="plazen-logo" transform="translate(400, 605) scale(0.4)">
-    <path d="M 5 10 C 15 0, 40 15, 30 10 C 50 5, 60 5, 70 10" fill="none" stroke="${subtext}" stroke-width="1.4"/>
-    <circle cx="10" cy="7" r="3" fill="${subtext}"/>
-    <circle cx="20" cy="7.5" r="2.6" fill="${subtext}"/>
-    <circle cx="32" cy="9.5" r="3.1" fill="${subtext}"/>
-    <circle cx="56" cy="6.5" r="3.3" fill="${subtext}"/>
-  </g>
-  
-  <text 
-    x="450" 
-    y="610" 
-    font-size="18" 
-    fill="${subtext}" 
-    text-anchor="start" 
-    dominant-baseline="middle"
-    font-family="${fontStack}"
-    font-weight="500"
-  >
-    Powered by Plazen
-  </text>
 </svg>`;
 }
 
 function roundDownToHour(mins: number): number {
   return Math.floor(mins / 60) * 60;
-}
-
-function prettyDateFromYMD(ymd: string): string {
-  const [y, m, d] = ymd.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1));
-  return dt.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
 }
